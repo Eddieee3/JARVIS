@@ -7,3 +7,7 @@ pywinauto>=0.6.8
 psutil>=5.9.8
 Pillow>=10.3.0
 pure-python-adb>=0.3.0.dev0
+pyttsx3>=2.90
+SpeechRecognition>=3.10.4
+sounddevice>=0.4.7
+numpy>=1.26.4

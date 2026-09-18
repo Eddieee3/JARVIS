@@ -111,32 +111,69 @@ class JarvisCore:
             }
         ]
 
-    def procesar_orden(self, entrada_usuario):
-        # 1. Recuperación automática de memoria semántica de fondo
+    def _ejecutar_herramienta(self, nombre_funcion, argumentos):
+        """Enrutamiento dinámico hacia los módulos importados. Puede lanzar excepciones."""
+        if nombre_funcion in ("gestionar_ventanas", "escanear_hardware", "clasificar_directorio") and self.windows is None:
+            return "El subsistema de Windows no está disponible en este entorno."
+        elif nombre_funcion == "gestionar_ventanas":
+            return self.windows.gestionar_ventanas(**argumentos)
+        elif nombre_funcion == "escanear_hardware":
+            return self.windows.escanear_hardware()
+        elif nombre_funcion == "clasificar_directorio":
+            return self.windows.clasificar_directorio(**argumentos)
+        elif nombre_funcion == "ejecutar_comando_android":
+            return self.android.ejecutar_comando(**argumentos)
+        elif nombre_funcion == "recordar_dato":
+            return self.memoria.recordar_dato(**argumentos)
+        else:
+            return "Error de enlace en la matriz de funciones."
+
+    def procesar_orden(self, entrada_usuario, max_reintentos=2):
+        """Procesa una orden de punta a punta y devuelve la respuesta final en texto.
+
+        Si una herramienta falla, el fallo se registra en la memoria de errores y se
+        le devuelve a la IA en la misma conversación para que reintente con un
+        enfoque distinto antes de responder al usuario (hasta max_reintentos veces).
+        """
+        # 1. Recuperación automática de memoria semántica de fondo: preferencias y
+        # fallos pasados relevantes, para no repetir errores conocidos.
         contexto_pasado = self.memoria.recuperar_contexto(entrada_usuario)
+        errores_pasados = self.memoria.recuperar_errores_relevantes(entrada_usuario)
+
         system_prompt = "Eres JARVIS, un asistente inteligente autónomo avanzado integrado en los sistemas operativos del usuario. Responde de manera sofisticada, concisa y caballerosa."
         if contexto_pasado:
             system_prompt += f" Contexto recuperado de la base de datos de hábitos del usuario: {contexto_pasado}"
+        if errores_pasados:
+            system_prompt += (
+                " Fallos registrados en el pasado con órdenes similares que debes evitar repetir: "
+                + " | ".join(errores_pasados)
+            )
 
-        # 2. Análisis semántico de la orden por el LLM
-        response = self.openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": entrada_usuario}
-            ],
-            tools=self.obtener_esquema_herramientas(),
-            tool_choice="auto"
-        )
-        
-        mensaje_respuesta = response.choices[0].message
-        tool_calls = mensaje_respuesta.tool_calls
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": entrada_usuario},
+        ]
 
-        # 3. Si la IA determina que el comando requiere interactuar con el mundo físico/máquina
-        if tool_calls:
-            # Todas las tool_calls de este turno deben resolverse antes de pedir
-            # la respuesta final: la API rechaza el turno si falta alguna.
-            mensajes_tool = []
+        intentos_restantes = max_reintentos
+        while True:
+            # 2. Análisis semántico de la orden por el LLM
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                tools=self.obtener_esquema_herramientas(),
+                tool_choice="auto",
+            )
+            mensaje_respuesta = response.choices[0].message
+            tool_calls = mensaje_respuesta.tool_calls
+
+            # 3. Si la IA no necesita herramientas, esta es la respuesta final.
+            if not tool_calls:
+                return mensaje_respuesta.content
+
+            # Todas las tool_calls de este turno deben resolverse antes del próximo
+            # turno: la API rechaza el turno si falta alguna.
+            messages.append(mensaje_respuesta)
+            hubo_fallo = False
             for tool_call in tool_calls:
                 nombre_funcion = tool_call.function.name
                 try:
@@ -145,43 +182,35 @@ class JarvisCore:
                     argumentos = {}
 
                 try:
-                    # Enrutamiento dinámico hacia los módulos importados
-                    if nombre_funcion in ("gestionar_ventanas", "escanear_hardware", "clasificar_directorio") and self.windows is None:
-                        resultado_ejecucion = "El subsistema de Windows no está disponible en este entorno."
-                    elif nombre_funcion == "gestionar_ventanas":
-                        resultado_ejecucion = self.windows.gestionar_ventanas(**argumentos)
-                    elif nombre_funcion == "escanear_hardware":
-                        resultado_ejecucion = self.windows.escanear_hardware()
-                    elif nombre_funcion == "clasificar_directorio":
-                        resultado_ejecucion = self.windows.clasificar_directorio(**argumentos)
-                    elif nombre_funcion == "ejecutar_comando_android":
-                        resultado_ejecucion = self.android.ejecutar_comando(**argumentos)
-                    elif nombre_funcion == "recordar_dato":
-                        resultado_ejecucion = self.memoria.recordar_dato(**argumentos)
-                    else:
-                        resultado_ejecucion = "Error de enlace en la matriz de funciones."
+                    resultado_ejecucion = self._ejecutar_herramienta(nombre_funcion, argumentos)
                 except Exception as e:
+                    hubo_fallo = True
                     resultado_ejecucion = f"Fallo al ejecutar '{nombre_funcion}': {e}"
+                    self.memoria.registrar_error(nombre_funcion, argumentos, e)
 
-                mensajes_tool.append({
+                messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
                     "content": str(resultado_ejecucion),
                 })
 
-            # Devuelve los resultados de la máquina a la IA para que formule la confirmación por voz/texto
+            # 4. Si algo falló y quedan reintentos, se le devuelve el error a la IA
+            # para que corrija su enfoque en la siguiente vuelta del bucle.
+            if hubo_fallo and intentos_restantes > 0:
+                intentos_restantes -= 1
+                messages.append({
+                    "role": "system",
+                    "content": "Una o más herramientas fallaron. Corrige los argumentos o intenta un enfoque distinto antes de responder al usuario.",
+                })
+                continue
+
+            # 5. Sin fallos (o reintentos agotados): pide la respuesta final en texto.
+            # No se pasan `tools` aquí para evitar más tool_calls sin control.
             final_response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": entrada_usuario},
-                    mensaje_respuesta,
-                    *mensajes_tool,
-                ]
+                messages=messages,
             )
-            print(f"\n[JARVIS]: {final_response.choices[0].message.content}")
-        else:
-            print(f"\n[JARVIS]: {mensaje_respuesta.content}")
+            return final_response.choices[0].message.content
 
 # =====================================================================
 # INICIALIZADOR DE INTERFAZ POR CONSOLA (Listo para acoplar entrada de audio)
@@ -204,9 +233,10 @@ if __name__ == "__main__":
                 break
             if not orden.strip():
                 continue
-                
-            jarvis.procesar_orden(orden)
-            
+
+            respuesta = jarvis.procesar_orden(orden)
+            print(f"\n[JARVIS]: {respuesta}")
+
         except KeyboardInterrupt:
             jarvis.scheduler.shutdown()
             break
