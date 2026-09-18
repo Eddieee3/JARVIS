@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+JARVIS_PROJECT/.jarvis_memory/
+JARVIS_PROJECT/phone_runtime_capture.png
+.venv/
+venv/
+.claude/
