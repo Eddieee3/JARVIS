@@ -232,7 +232,12 @@ let temporizadorSubtitulo = null;
 
 function mostrarSubtitulo(quien, texto) {
   if (!texto) return;
-  elementoSubtitulos.innerHTML = `<span class="quien">${quien}</span>${texto}`;
+  // textContent (no innerHTML): el texto viene del usuario, del modelo y de
+  // resultados de herramientas, y esta página tiene acceso a pywebview.api.
+  const etiqueta = document.createElement("span");
+  etiqueta.className = "quien";
+  etiqueta.textContent = quien;
+  elementoSubtitulos.replaceChildren(etiqueta, document.createTextNode(texto));
   elementoSubtitulos.classList.add("visible");
   if (temporizadorSubtitulo) clearTimeout(temporizadorSubtitulo);
   const duracion = Math.min(14000, Math.max(4000, texto.length * 60));

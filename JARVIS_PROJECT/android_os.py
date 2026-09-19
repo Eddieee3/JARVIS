@@ -38,4 +38,7 @@ class AndroidController:
             self.device.shell(f"input text {texto_seguro}")
             return "Carga útil de texto enviada al dispositivo."
             
-        return "Instrucción de subsistema móvil no mapeada."
+        raise ValueError(
+            f"Instrucción móvil no válida: accion={accion!r}. "
+            "Usa 'abrir_spotify', 'capturar_pantalla_movil' o 'escribir' (con texto_inyectar)."
+        )
