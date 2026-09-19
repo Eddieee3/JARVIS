@@ -5,6 +5,7 @@ import threading
 import webview
 
 from jarvis import JarvisCore
+from tray import ARGUMENTO_MINIMIZADO, BandejaSistema
 from voice import VoiceInterface
 
 
@@ -56,6 +57,9 @@ class OrbAPI:
 def main():
     api = OrbAPI()
     directorio_ui = _ruta_recursos("orb_ui", "index.html")
+    iniciar_oculto = ARGUMENTO_MINIMIZADO in sys.argv
+    saliendo = threading.Event()
+
     ventana = webview.create_window(
         "JARVIS",
         directorio_ui,
@@ -64,7 +68,15 @@ def main():
         height=720,
         min_size=(640, 480),
         background_color="#030814",
+        hidden=iniciar_oculto,
     )
+
+    def al_cerrando():
+        # Cerrar la ventana la oculta a la bandeja; solo "Salir" termina la app.
+        if saliendo.is_set():
+            return True
+        ventana.hide()
+        return False
 
     def al_cerrar():
         if api.jarvis is not None:
@@ -73,8 +85,17 @@ def main():
             except Exception:
                 pass
 
+    def salir():
+        saliendo.set()
+        ventana.destroy()
+
+    bandeja = BandejaSistema(_ruta_recursos("orb_ui", "icon.ico"), ventana.show, salir)
+
+    ventana.events.closing += al_cerrando
     ventana.events.closed += al_cerrar
+    bandeja.iniciar()
     webview.start()
+    bandeja.detener()
 
 
 if __name__ == "__main__":

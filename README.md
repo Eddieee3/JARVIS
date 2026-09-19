@@ -37,6 +37,22 @@ lectura en voz alta.
 interfaz gráfica, útil solo para depuración; no es la forma recomendada de
 usar JARVIS.)
 
+## Bandeja del sistema y arranque con Windows
+
+JARVIS deja un ícono en la bandeja del sistema (en Windows 11 puede quedar
+dentro del menú "^"). Cerrar la ventana con la X **no** cierra la app: la
+oculta a la bandeja. Clic derecho sobre el ícono:
+
+- **Mostrar JARVIS** (también doble clic): vuelve a abrir la ventana.
+- **Iniciar con Windows**: marca/desmarca el arranque automático. Escribe (o
+  borra) el valor `JARVIS` en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+  — sin permisos de administrador. Al arrancar así, JARVIS se inicia oculto
+  (`--minimizado`), solo con el ícono en la bandeja.
+- **Salir**: cierra la app por completo.
+
+También se puede arrancar oculto a mano con `python orb_gui.py --minimizado`
+o `JARVIS.exe --minimizado`.
+
 ## Empaquetado (ejecutable standalone)
 
 Para generar un `.exe` que corra sin tener Python instalado:
