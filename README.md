@@ -100,6 +100,34 @@ Notas sobre el ejecutable empaquetado:
   subtítulos) y la conecta con `JarvisCore` y `VoiceInterface` vía la clase
   `OrbAPI`.
 
+## Voz en español
+
+JARVIS habla con una voz SAPI5 **en español** de Windows y elige sola la mejor
+disponible: la indicada en la variable de entorno `JARVIS_VOZ` (un fragmento
+del nombre, p. ej. `helena`), si no la latinoamericana (es-MX, "Sabina") y si no
+cualquier otra en español (es-ES, "Helena"). Windows 11 en inglés trae solo voces
+en inglés, así que hay que instalar las de español una vez (PowerShell como
+administrador; descarga ~300 MB por idioma y puede tardar 20+ min):
+
+```powershell
+Add-WindowsCapability -Online -Name "Language.TextToSpeech~~~es-MX~0.0.1.0"
+Add-WindowsCapability -Online -Name "Language.TextToSpeech~~~es-ES~0.0.1.0"
+```
+
+El nombre exacto lleva `0.0.1.0` (con `0.0.1` Windows responde "OK" sin instalar
+nada). Si no hay ninguna voz en español, JARVIS avisa por consola y usa la voz
+por defecto. El reconocimiento de voz (micrófono) ya es en español (`es-ES`).
+
+## Ícono de la aplicación
+
+Con `python orb_gui.py`, pywebview toma el ícono de la ventana de `python.exe`
+(por eso salía el logo de Python). `orb_gui.py` ahora pasa `icon=orb_ui/icon.ico`
+a `webview.start()` y fija un `AppUserModelID` propio, de modo que la barra de
+título y la barra de tareas muestran la esfera de JARVIS. El `.exe` empaquetado,
+la bandeja del sistema y el arranque automático usan ese mismo ícono. Para
+cambiar el logo, reemplazá `orb_ui/icon.ico` (`.ico` con varios tamaños, fondo
+transparente) y reconstruí con `pyinstaller JARVIS.spec --noconfirm`.
+
 ## Aprendizaje de errores
 
 Cuando una herramienta falla durante una orden, JARVIS:
@@ -111,6 +139,13 @@ Cuando una herramienta falla durante una orden, JARVIS:
    `max_reintentos` de `procesar_orden`).
 3. En órdenes futuras similares, recupera esos fallos pasados como contexto
    para evitar repetirlos.
+
+Los fallos que se pueden corregir cambiando los argumentos (ruta inexistente,
+acción inválida) lanzan excepción y activan este ciclo; los estados informativos
+(sin teléfono Android conectado, subsistema de Windows no disponible) se
+devuelven como texto porque reintentar no los arregla. `clasificar_directorio`
+se niega a operar sobre raíces de disco, la carpeta de usuario y carpetas del
+sistema.
 
 ## Notas
 

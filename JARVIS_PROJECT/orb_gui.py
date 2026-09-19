@@ -54,7 +54,18 @@ class OrbAPI:
         return {"texto": texto, "error": error}
 
 
+def _fijar_identidad_windows():
+    # AppUserModelID propio: la barra de tareas agrupa la ventana como "JARVIS"
+    # con su propio ícono, en vez de agruparla bajo python.exe.
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("JARVIS.Asistente")
+    except Exception:
+        pass
+
+
 def main():
+    _fijar_identidad_windows()
     api = OrbAPI()
     directorio_ui = _ruta_recursos("orb_ui", "index.html")
     iniciar_oculto = ARGUMENTO_MINIMIZADO in sys.argv
@@ -94,7 +105,9 @@ def main():
     ventana.events.closing += al_cerrando
     ventana.events.closed += al_cerrar
     bandeja.iniciar()
-    webview.start()
+    # Sin icon=, pywebview extrae el ícono de python.exe (el logo de Python) para
+    # la barra de título y la barra de tareas.
+    webview.start(icon=_ruta_recursos("orb_ui", "icon.ico"))
     bandeja.detener()
 
 
