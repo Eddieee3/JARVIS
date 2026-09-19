@@ -11,3 +11,4 @@ pyttsx3>=2.90
 SpeechRecognition>=3.10.4
 sounddevice>=0.4.7
 numpy>=1.26.4
+pywebview>=5.2

@@ -23,7 +23,18 @@ copy .env.example .env
 
 ## Ejecución
 
-**App de escritorio (recomendado):**
+**Esfera animada (recomendado):**
+
+```bash
+python orb_gui.py
+```
+
+Ventana con una esfera animada (canvas, estilo HUD tipo Iron Man/JARVIS) que
+cambia de estado — reposo, pensando, escuchando, hablando, error — y el chat
+se muestra como subtítulos superpuestos en vez de una lista de texto. Incluye
+botón de micrófono y una casilla para silenciar la lectura en voz alta.
+
+**App de escritorio con chat de texto (alternativa):**
 
 ```bash
 python gui.py
@@ -56,8 +67,13 @@ terminar. `Ctrl+C` también cierra la sesión de forma controlada.
 - **voice.py** — entrada por voz (STT, vía `sounddevice` + Google Speech
   Recognition) y salida por voz (TTS local con `pyttsx3`/SAPI5). No usa PyAudio
   para evitar depender de un compilador de C++ en Windows.
-- **gui.py** — aplicación de escritorio (Tkinter) que envuelve `JarvisCore` con
-  chat de texto y voz.
+- **orb_ui/** + **orb_gui.py** — interfaz principal: ventana nativa
+  (`pywebview`, WebView2) que renderiza `orb_ui/index.html` (esfera animada en
+  canvas 2D + subtítulos) y la conecta con `JarvisCore` y `VoiceInterface` vía
+  la clase `OrbAPI`.
+- **gui.py** — aplicación de escritorio alternativa (Tkinter) con chat de
+  texto tradicional, por si prefieres ver el historial completo en vez de
+  subtítulos.
 
 ## Aprendizaje de errores
 

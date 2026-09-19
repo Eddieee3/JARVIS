@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>JARVIS</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="orb-canvas"></canvas>
+
+  <div id="estado-inicial">Inicializando sistemas periféricos de JARVIS...</div>
+
+  <div id="subtitulos" aria-live="polite"></div>
+
+  <div id="barra-inferior">
+    <button id="boton-voz-toggle" title="Leer respuestas en voz alta" class="activo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="4,9 8,9 12,5 12,19 8,15 4,15" />
+        <path d="M16 8.5a5 5 0 0 1 0 7" />
+        <path d="M18.5 6a8.5 8.5 0 0 1 0 12" />
+      </svg>
+    </button>
+    <input id="campo-entrada" type="text" placeholder="Escribe una orden para JARVIS..." autocomplete="off" disabled />
+    <button id="boton-microfono" title="Hablar" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M5 11a7 7 0 0 0 14 0" />
+        <line x1="12" y1="18" x2="12" y2="21" />
+        <line x1="8.5" y1="21" x2="15.5" y2="21" />
+      </svg>
+    </button>
+  </div>
+
+  <script src="orb.js"></script>
+</body>
+</html>
