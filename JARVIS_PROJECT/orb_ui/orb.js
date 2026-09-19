@@ -1,7 +1,8 @@
 "use strict";
 
 // ---------------------------------------------------------------------------
-// Esfera animada (canvas 2D): núcleo con glow + anillos rotando + partículas.
+// Esfera animada (canvas 2D): estrellas de fondo + glow + núcleo + anillos
+// rotando + partículas orbitando + pulsos tipo sonar + anillo HUD con marcas.
 // Estados: idle, pensando, escuchando, hablando, error.
 // ---------------------------------------------------------------------------
 
@@ -16,9 +17,40 @@ const COLORES = {
   error: "255,77,77",
 };
 
+const INTERVALO_PULSO = {
+  idle: 2200, pensando: 650, escuchando: 550, hablando: 950, error: 380,
+};
+
 let estadoOrbe = "idle";
 let inicioEstado = performance.now();
 let ancho = 0, alto = 0, centroX = 0, centroY = 0, radioBase = 0;
+let estrellas = [];
+let particulas = [];
+let pulsos = [];
+let ultimoPulso = 0;
+
+function generarEstrellas() {
+  const cantidad = Math.round((ancho * alto) / 9000);
+  estrellas = Array.from({ length: cantidad }, () => ({
+    x: Math.random() * ancho,
+    y: Math.random() * alto,
+    r: Math.random() * 1.3 + 0.3,
+    fase: Math.random() * Math.PI * 2,
+    velocidad: 0.4 + Math.random() * 0.8,
+  }));
+}
+
+function generarParticulas() {
+  particulas = Array.from({ length: 30 }, (_, i) => ({
+    anguloInicial: Math.random() * Math.PI * 2,
+    radioMult: 1.35 + Math.random() * 2.1,
+    velocidad: (0.15 + Math.random() * 0.55) * (Math.random() < 0.5 ? 1 : -1),
+    tam: 0.8 + Math.random() * 2.1,
+    fase: Math.random() * Math.PI * 2,
+    parpadeo: 1.2 + Math.random() * 2.4,
+    achatado: 0.45 + Math.random() * 0.25,
+  }));
+}
 
 function redimensionar() {
   const dpr = window.devicePixelRatio || 1;
@@ -32,6 +64,8 @@ function redimensionar() {
   centroX = ancho / 2;
   centroY = alto / 2 - 40;
   radioBase = Math.min(ancho, alto) * 0.14;
+  generarEstrellas();
+  generarParticulas();
 }
 window.addEventListener("resize", redimensionar);
 redimensionar();
@@ -43,10 +77,84 @@ function fijarEstadoOrbe(nuevoEstado) {
   }
 }
 
+function dibujarEstrellas(t) {
+  estrellas.forEach((estrella) => {
+    const parpadeo = 0.35 + Math.sin(t / 1000 * estrella.velocidad + estrella.fase) * 0.35;
+    ctx.fillStyle = `rgba(180,225,255,${Math.max(0, parpadeo)})`;
+    ctx.beginPath();
+    ctx.arc(estrella.x, estrella.y, estrella.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function dibujarAnilloHud(t, color, radio) {
+  const radioHud = radio * 4.1;
+  const marcas = 60;
+  const rotacion = t / 1000 * 0.04;
+  ctx.strokeStyle = `rgba(${color},0.22)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(centroX, centroY, radioHud, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let i = 0; i < marcas; i++) {
+    const angulo = (i / marcas) * Math.PI * 2 + rotacion;
+    const largo = i % 5 === 0 ? 10 : 4;
+    const x1 = centroX + Math.cos(angulo) * radioHud;
+    const y1 = centroY + Math.sin(angulo) * radioHud;
+    const x2 = centroX + Math.cos(angulo) * (radioHud + largo);
+    const y2 = centroY + Math.sin(angulo) * (radioHud + largo);
+    ctx.strokeStyle = `rgba(${color},${i % 5 === 0 ? 0.4 : 0.18})`;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+}
+
+function dibujarPulsos(t, color) {
+  const duracion = 1700;
+  pulsos = pulsos.filter((p) => t - p.inicio < duracion);
+  pulsos.forEach((p) => {
+    const progreso = (t - p.inicio) / duracion;
+    const radioPulso = radioBase * (1 + progreso * 3.4);
+    ctx.strokeStyle = `rgba(${color},${0.45 * (1 - progreso)})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, radioPulso, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+}
+
+function dibujarParticulas(t, color, radio) {
+  particulas.forEach((p) => {
+    const angulo = p.anguloInicial + (t / 1000) * p.velocidad;
+    const radioOrbita = radio * p.radioMult;
+    const x = centroX + Math.cos(angulo) * radioOrbita;
+    const y = centroY + Math.sin(angulo) * radioOrbita * p.achatado;
+    const brillo = 0.35 + Math.sin(t / 1000 * p.parpadeo + p.fase) * 0.35;
+    // Estela sutil detrás de la partícula
+    const anguloEstela = angulo - 0.12 * Math.sign(p.velocidad || 1);
+    const xEstela = centroX + Math.cos(anguloEstela) * radioOrbita;
+    const yEstela = centroY + Math.sin(anguloEstela) * radioOrbita * p.achatado;
+    ctx.strokeStyle = `rgba(${color},${Math.max(0, brillo) * 0.25})`;
+    ctx.lineWidth = p.tam * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(xEstela, yEstela);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(${color},${Math.max(0, Math.min(1, brillo + 0.25))})`;
+    ctx.beginPath();
+    ctx.arc(x, y, p.tam, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
 function dibujarOrbe(t) {
   ctx.clearRect(0, 0, ancho, alto);
   const color = COLORES[estadoOrbe] || COLORES.idle;
-  const transcurrido = (t - inicioEstado) / 1000;
+
+  dibujarEstrellas(t);
 
   let velocidadPulso = 1.1, amplitudPulso = 0.06, velocidadRotacion = 0.15;
   if (estadoOrbe === "pensando") { velocidadPulso = 3.2; amplitudPulso = 0.09; velocidadRotacion = 0.9; }
@@ -56,6 +164,20 @@ function dibujarOrbe(t) {
 
   const pulso = 1 + Math.sin(t / 1000 * velocidadPulso) * amplitudPulso;
   const radio = radioBase * pulso;
+
+  // Pulsos tipo sonar: se generan a un ritmo que depende del estado
+  const intervalo = INTERVALO_PULSO[estadoOrbe] || INTERVALO_PULSO.idle;
+  if (t - ultimoPulso > intervalo) {
+    pulsos.push({ inicio: t });
+    ultimoPulso = t;
+  }
+  dibujarPulsos(t, color);
+
+  // Anillo HUD exterior con marcas (tipo mira/reticle)
+  dibujarAnilloHud(t, color, radio);
+
+  // Partículas orbitando (más pequeñas, con estela)
+  dibujarParticulas(t, color, radio);
 
   // Glow exterior
   const gradiente = ctx.createRadialGradient(centroX, centroY, radio * 0.1, centroX, centroY, radio * 3.2);
@@ -77,7 +199,7 @@ function dibujarOrbe(t) {
   ctx.arc(centroX, centroY, radio, 0, Math.PI * 2);
   ctx.fill();
 
-  // Anillos orbitales
+  // Anillos orbitales (segmentados, rotando)
   const anillos = [
     { radio: radio * 1.7, ancho: 2, segmentos: 10, velocidad: velocidadRotacion, offset: 0 },
     { radio: radio * 2.15, ancho: 1.5, segmentos: 16, velocidad: -velocidadRotacion * 0.6, offset: 1.2 },
