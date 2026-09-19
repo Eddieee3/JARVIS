@@ -1,10 +1,10 @@
 # JARVIS (prototipo)
 
 Asistente con function-calling (OpenAI), memoria semántica persistente (ChromaDB),
-control de Windows / Android (ADB), entrada/salida por voz y una app de escritorio
-(Tkinter). JARVIS también aprende de sus propios errores: cuando una herramienta
-falla, registra el fallo en memoria y reintenta con un enfoque distinto antes de
-responder.
+control de Windows / Android (ADB), entrada/salida por voz y una interfaz de
+escritorio con una esfera animada. JARVIS también aprende de sus propios errores:
+cuando una herramienta falla, registra el fallo en memoria y reintenta con un
+enfoque distinto antes de responder.
 
 ## Instalación
 
@@ -23,34 +23,19 @@ copy .env.example .env
 
 ## Ejecución
 
-**Esfera animada (recomendado):**
-
 ```bash
 python orb_gui.py
 ```
 
-Ventana con una esfera animada (canvas, estilo HUD tipo Iron Man/JARVIS) que
-cambia de estado — reposo, pensando, escuchando, hablando, error — y el chat
-se muestra como subtítulos superpuestos en vez de una lista de texto. Incluye
-botón de micrófono y una casilla para silenciar la lectura en voz alta.
+Esta es la única interfaz: una ventana con una esfera animada (canvas, estilo
+HUD tipo Iron Man/JARVIS) que cambia de estado — reposo, pensando, escuchando,
+hablando, error — y el chat se muestra como subtítulos superpuestos en vez de
+una lista de texto. Incluye botón de micrófono y una casilla para silenciar la
+lectura en voz alta.
 
-**App de escritorio con chat de texto (alternativa):**
-
-```bash
-python gui.py
-```
-
-Ventana con historial de chat, entrada de texto, botón "🎤 Hablar" para dar
-órdenes por voz, y una casilla para que JARVIS lea sus respuestas en voz alta.
-
-**Consola (sin interfaz gráfica):**
-
-```bash
-python jarvis.py
-```
-
-Escribe una orden en la consola. Escribe `salir`, `apagar` o `shutdown` para
-terminar. `Ctrl+C` también cierra la sesión de forma controlada.
+(`jarvis.py` sigue siendo ejecutable directamente como modo de consola sin
+interfaz gráfica, útil solo para depuración; no es la forma recomendada de
+usar JARVIS.)
 
 ## Subsistemas
 
@@ -67,13 +52,10 @@ terminar. `Ctrl+C` también cierra la sesión de forma controlada.
 - **voice.py** — entrada por voz (STT, vía `sounddevice` + Google Speech
   Recognition) y salida por voz (TTS local con `pyttsx3`/SAPI5). No usa PyAudio
   para evitar depender de un compilador de C++ en Windows.
-- **orb_ui/** + **orb_gui.py** — interfaz principal: ventana nativa
-  (`pywebview`, WebView2) que renderiza `orb_ui/index.html` (esfera animada en
-  canvas 2D + subtítulos) y la conecta con `JarvisCore` y `VoiceInterface` vía
-  la clase `OrbAPI`.
-- **gui.py** — aplicación de escritorio alternativa (Tkinter) con chat de
-  texto tradicional, por si prefieres ver el historial completo en vez de
-  subtítulos.
+- **orb_ui/** + **orb_gui.py** — la interfaz: ventana nativa (`pywebview`,
+  WebView2) que renderiza `orb_ui/index.html` (esfera animada en canvas 2D +
+  subtítulos) y la conecta con `JarvisCore` y `VoiceInterface` vía la clase
+  `OrbAPI`.
 
 ## Aprendizaje de errores
 
