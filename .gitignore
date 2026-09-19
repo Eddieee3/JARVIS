@@ -6,3 +6,5 @@ JARVIS_PROJECT/phone_runtime_capture.png
 .venv/
 venv/
 .claude/
+JARVIS_PROJECT/build/
+JARVIS_PROJECT/dist/

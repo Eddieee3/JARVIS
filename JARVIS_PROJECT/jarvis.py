@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -9,7 +10,12 @@ from memory import JarvisMemory
 from windows_os import WindowsController
 from android_os import AndroidController
 
-load_dotenv()
+# Empaquetado (PyInstaller): busca .env junto al .exe, no en el directorio
+# temporal de extracción, para que se pueda editar sin reconstruir el binario.
+if getattr(sys, "frozen", False):
+    load_dotenv(os.path.join(os.path.dirname(sys.executable), ".env"))
+else:
+    load_dotenv()
 
 
 class JarvisCore:

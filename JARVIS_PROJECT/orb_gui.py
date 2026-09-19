@@ -1,10 +1,21 @@
 import os
+import sys
 import threading
 
 import webview
 
 from jarvis import JarvisCore
 from voice import VoiceInterface
+
+
+def _ruta_recursos(*partes):
+    """Resuelve una ruta tanto en modo script como empaquetada (PyInstaller).
+
+    PyInstaller extrae los datos incluidos (--add-data) a una carpeta temporal
+    expuesta en sys._MEIPASS; en modo script normal, __file__ apunta aquí.
+    """
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, *partes)
 
 
 class OrbAPI:
@@ -44,7 +55,7 @@ class OrbAPI:
 
 def main():
     api = OrbAPI()
-    directorio_ui = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orb_ui", "index.html")
+    directorio_ui = _ruta_recursos("orb_ui", "index.html")
     ventana = webview.create_window(
         "JARVIS",
         directorio_ui,

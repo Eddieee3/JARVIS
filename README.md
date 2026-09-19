@@ -37,6 +37,33 @@ lectura en voz alta.
 interfaz gráfica, útil solo para depuración; no es la forma recomendada de
 usar JARVIS.)
 
+## Empaquetado (ejecutable standalone)
+
+Para generar un `.exe` que corra sin tener Python instalado:
+
+```bash
+pip install -r requirements-dev.txt
+pyinstaller JARVIS.spec --noconfirm
+```
+
+El resultado queda en `dist/JARVIS/` (`JARVIS.exe` + una carpeta `_internal`
+con las dependencias y los archivos de `orb_ui/`). Se puede repartir esa
+carpeta completa tal cual, o comprimirla en un `.zip`.
+
+Notas sobre el ejecutable empaquetado:
+
+- Busca `.env` junto a `JARVIS.exe` (no en el directorio desde el que se
+  lance el acceso directo), así que hay que copiar `.env` a `dist/JARVIS/`.
+- La base de memoria (`.jarvis_memory/`) también se crea junto al `.exe`.
+- `JARVIS.spec` ya incluye el ícono (`orb_ui/icon.ico`), los assets de la
+  interfaz y los submódulos de `chromadb` que PyInstaller no detecta solo
+  (telemetría, backends de base de datos) — si aparece un `ModuleNotFoundError`
+  al abrir el `.exe`, probablemente sea otro import dinámico de una
+  dependencia nueva que hay que sumar a `hiddenimports` en el `.spec`.
+- El primer arranque de ChromaDB descarga un modelo de embeddings (~80 MB) a
+  `%USERPROFILE%\.cache\chroma\`; ese paso necesita internet una sola vez,
+  incluso en la versión empaquetada.
+
 ## Subsistemas
 
 - **windows_os.py** — control de ventanas (`pyautogui`), diagnóstico de

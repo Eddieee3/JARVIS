@@ -1,13 +1,22 @@
 import chromadb
 from chromadb.utils import embedding_functions
 import os
+import sys
 import uuid
 from datetime import datetime, timezone
+
+def _ruta_base_datos():
+    # Empaquetado (PyInstaller): ancla la carpeta de memoria junto al .exe,
+    # no al directorio de trabajo actual (que depende de cómo se lanzó el binario).
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(sys.executable), ".jarvis_memory")
+    return "./.jarvis_memory"
+
 
 class JarvisMemory:
     def __init__(self):
         # Inicializa base de datos persistente en la carpeta local .jarvis_memory
-        self.chroma_client = chromadb.PersistentClient(path="./.jarvis_memory")
+        self.chroma_client = chromadb.PersistentClient(path=_ruta_base_datos())
         # Usamos el modelo embebido por defecto para no depender de APIs de pago en la memoria
         self.emb_fn = embedding_functions.DefaultEmbeddingFunction()
         self.collection = self.chroma_client.get_or_create_collection(
